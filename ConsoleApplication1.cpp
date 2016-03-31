@@ -3,14 +3,11 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #define GLM_FORCE_RADIANS
-// Header file 
 #include <glm/gtc/type_ptr.hpp>
 #include <GLM/glm.hpp>
-// Include GLM core features
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp> 
 #include <glm/mat4x4.hpp>  
-// Include GLM extensions  
 #include <glm/gtc/matrix_transform.hpp>
 #include <stdlib.h>
 #include <stdio.h>
@@ -104,21 +101,21 @@ int init_resources()
 void onDisplay()
 {
 
-  //¹¹½¨Ò»¸öÁ¢·½ÌåĞèÒª36¸öµã£¬Ã¿¸öÕı·½ĞÎÓĞ6¸öÃæ£¬Ã¿¸öÃæÓÉ2¸öÈı½ÇĞÎ×é³É£¬
-  //3¸öÁ¬ĞøµÄµã¹¹³ÉÒ»¸öÈı½ÇĞÎ
-  //µÚÒ»¸ö´¿É«Á¢·½ÌåºÍÃ¿¸ö¶¥µãµÄÑÕÉ«Öµ
-  //µã£¨-1£¬-1£¬-1£©µÄÑÕÉ«Îª£¨0.5£¬0£¬0£©£»µã£¨-1£¬-1£¬1£©µÄÑÕÉ«Îª£¨0.5£¬0.5£¬0£©£»µã£¨-1£¬1£¬1£©µÄÑÕÉ«Îª£¨0.5£¬0£¬0.5£©
-  //µã£¨1£¬1£¬-1£©µÄÑÕÉ«Îª£¨0.5£¬0.5£¬0.5£©£»µã£¨-1£¬1£¬-1£©µÄÑÕÉ«Îª£¨0£¬0.5£¬0£©£»µã£¨1£¬1£¬1£©µÄÑÕÉ«Îª£¨0£¬0£¬0.5£©
-  //µã£¨1£¬-1£¬1£©µÄÑÕÉ«Îª£¨0£¬0.5£¬0.5£©£»µã£¨1£¬-1£¬-1£©µÄÑÕÉ«Îª£¨0.2£¬0.2£¬0.2£©
+  //æ„å»ºä¸€ä¸ªç«‹æ–¹ä½“éœ€è¦36ä¸ªç‚¹ï¼Œæ¯ä¸ªæ­£æ–¹å½¢æœ‰6ä¸ªé¢ï¼Œæ¯ä¸ªé¢ç”±2ä¸ªä¸‰è§’å½¢ç»„æˆï¼Œ
+  //3ä¸ªè¿ç»­çš„ç‚¹æ„æˆä¸€ä¸ªä¸‰è§’å½¢
+  //ç¬¬ä¸€ä¸ªçº¯è‰²ç«‹æ–¹ä½“å’Œæ¯ä¸ªé¡¶ç‚¹çš„é¢œè‰²å€¼
+  //ç‚¹ï¼ˆ-1ï¼Œ-1ï¼Œ-1ï¼‰çš„é¢œè‰²ä¸ºï¼ˆ0.5ï¼Œ0ï¼Œ0ï¼‰ï¼›ç‚¹ï¼ˆ-1ï¼Œ-1ï¼Œ1ï¼‰çš„é¢œè‰²ä¸ºï¼ˆ0.5ï¼Œ0.5ï¼Œ0ï¼‰ï¼›ç‚¹ï¼ˆ-1ï¼Œ1ï¼Œ1ï¼‰çš„é¢œè‰²ä¸ºï¼ˆ0.5ï¼Œ0ï¼Œ0.5ï¼‰
+  //ç‚¹ï¼ˆ1ï¼Œ1ï¼Œ-1ï¼‰çš„é¢œè‰²ä¸ºï¼ˆ0.5ï¼Œ0.5ï¼Œ0.5ï¼‰ï¼›ç‚¹ï¼ˆ-1ï¼Œ1ï¼Œ-1ï¼‰çš„é¢œè‰²ä¸ºï¼ˆ0ï¼Œ0.5ï¼Œ0ï¼‰ï¼›ç‚¹ï¼ˆ1ï¼Œ1ï¼Œ1ï¼‰çš„é¢œè‰²ä¸ºï¼ˆ0ï¼Œ0ï¼Œ0.5ï¼‰
+  //ç‚¹ï¼ˆ1ï¼Œ-1ï¼Œ1ï¼‰çš„é¢œè‰²ä¸ºï¼ˆ0ï¼Œ0.5ï¼Œ0.5ï¼‰ï¼›ç‚¹ï¼ˆ1ï¼Œ-1ï¼Œ-1ï¼‰çš„é¢œè‰²ä¸ºï¼ˆ0.2ï¼Œ0.2ï¼Œ0.2ï¼‰
   /*
 	GLfloat alpha = 0.5f;
 	GLfloat points1[] = {
-     -1.0f,-1.0f,-1.0f,  0.5f, 0.0f, 0.0f, alpha,  //µÚÒ»¸öÈı½ÇĞÎ¿ªÊ¼µÄµã
+     -1.0f,-1.0f,-1.0f,  0.5f, 0.0f, 0.0f, alpha,  //ç¬¬ä¸€ä¸ªä¸‰è§’å½¢å¼€å§‹çš„ç‚¹
      -1.0f,-1.0f, 1.0f,  0.5f, 0.5f, 0.0f, alpha,
-     -1.0f, 1.0f, 1.0f,  0.5f, 0.0f, 0.5f, alpha, //µÚÒ»¸öÈı½ÇĞÎ½áÊøµÄµã  
-      1.0f, 1.0f,-1.0f,  0.5f, 0.5f, 0.5f, alpha, //µÚ¶ş¸öÈı½ÇĞÎ¿ªÊ¼µÄµã  
+     -1.0f, 1.0f, 1.0f,  0.5f, 0.0f, 0.5f, alpha, //ç¬¬ä¸€ä¸ªä¸‰è§’å½¢ç»“æŸçš„ç‚¹  
+      1.0f, 1.0f,-1.0f,  0.5f, 0.5f, 0.5f, alpha, //ç¬¬äºŒä¸ªä¸‰è§’å½¢å¼€å§‹çš„ç‚¹  
      -1.0f,-1.0f,-1.0f,  0.5f, 0.0f, 0.0f, alpha,
-     -1.0f, 1.0f,-1.0f,  0.0f, 0.5f, 0.0f, alpha, // µÚ¶ş¸öÈı½ÇĞÎ½áÊøµÄµã
+     -1.0f, 1.0f,-1.0f,  0.0f, 0.5f, 0.0f, alpha, // ç¬¬äºŒä¸ªä¸‰è§’å½¢ç»“æŸçš„ç‚¹
       1.0f,-1.0f, 1.0f,  0.0f, 0.5f, 0.5f, alpha,
 	 -1.0f,-1.0f,-1.0f,  0.5f, 0.0f, 0.0f, alpha, 
 	  1.0f,-1.0f,-1.0f,  0.2f, 0.2f, 0.2f, alpha, // 
@@ -154,11 +151,11 @@ void onDisplay()
   */
 
 	/***************************************************************
-	 Ë÷Òı·½Ê½»­Á¢·½Ìå
+	 ç´¢å¼•æ–¹å¼ç”»ç«‹æ–¹ä½“
      **************************************************************/
 
-	//µÚÒ»¸öÁ¢·½ÌåµÄ¶¥µãÊı¾İ
-	//Í¸Ã÷¶È
+	//ç¬¬ä¸€ä¸ªç«‹æ–¹ä½“çš„é¡¶ç‚¹æ•°æ®
+	//é€æ˜åº¦
 	GLfloat alpha1 = 1.0f;
 	GLfloat points1[] = {
 		-1.0f, -1.0f, -1.0f,      0.5f, 0.0f, 0.0f,alpha1,    //0
@@ -171,7 +168,7 @@ void onDisplay()
 		 1.0f, -1.0f, -1.0f,      1.0f, 1.0f, 1.0f,alpha1     //7
 	};
 
-	//µÚ¶ş¸öÁ¢·½ÌåµÄ¶¥µãÊı¾İ
+	//ç¬¬äºŒä¸ªç«‹æ–¹ä½“çš„é¡¶ç‚¹æ•°æ®
 	GLfloat alpha2 = 0.3f;
 	GLfloat points2[] = {
 		-1.0f, -1.0f, -1.0f,      0.5f, 0.0f, 0.0f,alpha2,    //0
@@ -186,33 +183,33 @@ void onDisplay()
 
 	GLuint index[] = {
 
-	     0, 1, 2,  //×ó²àÏÂ
-		 0, 2, 4,  //×ó²àÉÏ		
-		 5, 7, 3,  //ÓÒÃæÉÏ
-		 7, 5, 6,  //ÓÒÃæÏÂ
-		 6, 1, 0,  //µ×Ãæ×ó
-		 6, 0, 7,  //µ×ÃæÓÒ	
-		 3, 0, 4,  //ÕıÃæÉÏ
-		 3, 7, 0,  //ÕıÃæÏÂ 
-		 5, 2, 6,  //±³ÃæÉÏ
-		 2, 1, 6,  //±³ÃæÏÂ
-		 5, 3, 4,  //ÉÏÃæÓÒ
-		 5, 4, 2   //ÉÏÃæ×ó
+	     0, 1, 2,  //å·¦ä¾§ä¸‹
+		 0, 2, 4,  //å·¦ä¾§ä¸Š		
+		 5, 7, 3,  //å³é¢ä¸Š
+		 7, 5, 6,  //å³é¢ä¸‹
+		 6, 1, 0,  //åº•é¢å·¦
+		 6, 0, 7,  //åº•é¢å³	
+		 3, 0, 4,  //æ­£é¢ä¸Š
+		 3, 7, 0,  //æ­£é¢ä¸‹ 
+		 5, 2, 6,  //èƒŒé¢ä¸Š
+		 2, 1, 6,  //èƒŒé¢ä¸‹
+		 5, 3, 4,  //ä¸Šé¢å³
+		 5, 4, 2   //ä¸Šé¢å·¦
 	};
 
-  //ÓÃÓÚ´æ´¢µÚÒ»¸öÁ¢·½ÌåµÄ¶¥µãÊı¾İ
+  //ç”¨äºå­˜å‚¨ç¬¬ä¸€ä¸ªç«‹æ–¹ä½“çš„é¡¶ç‚¹æ•°æ®
   GLuint vbo1 = 0;
   glGenBuffers(1, &vbo1);
   glBindBuffer(GL_ARRAY_BUFFER, vbo1);
   glBufferData(GL_ARRAY_BUFFER, sizeof(points1), points1, GL_STATIC_DRAW);
   glBindBuffer(GL_ARRAY_BUFFER,0);
-  //´æ´¢µÚ¶ş¸öÁ¢·½ÌåµÄ¶¥µãÊı¾İ
+  //å­˜å‚¨ç¬¬äºŒä¸ªç«‹æ–¹ä½“çš„é¡¶ç‚¹æ•°æ®
   GLuint vbo2 = 0;
   glGenBuffers(1, &vbo2);
   glBindBuffer(GL_ARRAY_BUFFER, vbo2);
   glBufferData(GL_ARRAY_BUFFER, sizeof(points2), points2, GL_STATIC_DRAW);
   glBindBuffer(GL_ARRAY_BUFFER,0);
-  //°ó¶¨µÚÒ»¸övao
+  //ç»‘å®šç¬¬ä¸€ä¸ªvao
   GLuint vao1 = 0;
   glGenVertexArrays(1, &vao1);
   glBindVertexArray(vao1);
@@ -223,7 +220,7 @@ void onDisplay()
   glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 7 * sizeof (GL_FLOAT), (GLvoid*)(3 * sizeof(GL_FLOAT)));
   glEnableVertexAttribArray(1);
   glBindVertexArray(0);
-  //°ó¶¨µÚ¶ş¸övao
+  //ç»‘å®šç¬¬äºŒä¸ªvao
   GLuint vao2 = 0;
   glGenVertexArrays(1, &vao2);
   glBindVertexArray(vao2);
@@ -237,7 +234,7 @@ void onDisplay()
 
  
 
-   //´´½¨Æ½ÒÆ
+   //åˆ›å»ºå¹³ç§»
    glm::mat4 view;
    
    glm::mat4 projection;
@@ -247,7 +244,7 @@ void onDisplay()
    GLint modelLoc = glGetUniformLocation(program, "model");
    GLint viewLoc = glGetUniformLocation(program, "view");
    GLint projLoc = glGetUniformLocation(program, "projection");
-   // ½«¾ØÕó´«¸øshader
+   // å°†çŸ©é˜µä¼ ç»™shader
    glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
    // Note: currently we set the projection matrix each frame, but since the projection matrix 
    //rarely changes it's often best practice to set it outside the main loop only once.
@@ -255,16 +252,16 @@ void onDisplay()
    glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
    
    
-   //Æ½ÒÆ
+   //å¹³ç§»
    glm::vec3 cubePositions[] = {
 		
-	glm::vec3(-0.2f, -0.2f, -2.5f),     //¿¿Ç°µÄ
-	glm::vec3( 0.4f,  0.0f,  4.0f)      //¿¿ºóµÄ,¸ÄÁËzµÄÖµÎªÕıÔò¸ÃÎïÌå»áÔÚµÚÒ»¸öÇ°·½,ÓÃÓÚ²âÊÔÉî¶È²âÊÔµÄ²ÎÊı
+	glm::vec3(-0.2f, -0.2f, -2.5f),     //é å‰çš„
+	glm::vec3( 0.4f,  0.0f,  4.0f)      //é åçš„,æ”¹äº†zçš„å€¼ä¸ºæ­£åˆ™è¯¥ç‰©ä½“ä¼šåœ¨ç¬¬ä¸€ä¸ªå‰æ–¹,ç”¨äºæµ‹è¯•æ·±åº¦æµ‹è¯•çš„å‚æ•°
 
    };
    
-   //°ó¶¨µÚÒ»¸övao
-   //×¢£ºÆ½ÒÆ¾ØÕóÊÇµş¼ÓµÄ£¬½Ç¶ÈÒ²ÊÇµş¼ÓµÄ
+   //ç»‘å®šç¬¬ä¸€ä¸ªvao
+   //æ³¨ï¼šå¹³ç§»çŸ©é˜µæ˜¯å åŠ çš„ï¼Œè§’åº¦ä¹Ÿæ˜¯å åŠ çš„
    glm::mat4 model;
    model = glm::translate(model, cubePositions[0]);
    GLfloat angle;
@@ -273,8 +270,8 @@ void onDisplay()
    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
    glBindVertexArray(vao1);
    // glDrawArrays(GL_TRIANGLES, 0, 36);
-   //µÚÒ»¸ö²ÎÊıÊÇÍ¼ÔªµÄÀàĞÍ£¬µÚ¶ş¸ö²ÎÊıÊÇË÷ÒıÊı×éÖĞË÷ÒıµÄÊıÁ¿£¬
-   //µÚÈı¸ö²ÎÊıÊÇË÷ÒıÊı×éµÄÀàĞÍ£¬×îºóÒ»¸ö²ÎÊıÊÇË÷ÒıÊı×éµÄµØÖ·
+   //ç¬¬ä¸€ä¸ªå‚æ•°æ˜¯å›¾å…ƒçš„ç±»å‹ï¼Œç¬¬äºŒä¸ªå‚æ•°æ˜¯ç´¢å¼•æ•°ç»„ä¸­ç´¢å¼•çš„æ•°é‡ï¼Œ
+   //ç¬¬ä¸‰ä¸ªå‚æ•°æ˜¯ç´¢å¼•æ•°ç»„çš„ç±»å‹ï¼Œæœ€åä¸€ä¸ªå‚æ•°æ˜¯ç´¢å¼•æ•°ç»„çš„åœ°å€
    glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT,index);
    glUseProgram(program);
    //glBindVertexArray(0);
@@ -288,7 +285,7 @@ void onDisplay()
    
    glBindVertexArray(0);
 
-  //glDrawArrays(GL_TRIANGLES, 0, 3*12);  //µÚÈı¸ö²ÎÊı±íÊ¾¶¥µãµÄÊıÄ¿
+  //glDrawArrays(GL_TRIANGLES, 0, 3*12);  //ç¬¬ä¸‰ä¸ªå‚æ•°è¡¨ç¤ºé¡¶ç‚¹çš„æ•°ç›®
   
 }
 
@@ -344,11 +341,11 @@ int main(void)
   printf ("Renderer: %s\n", renderer);
   printf ("OpenGL version supported %s\n", version);
 
-  //Éî¶È²âÊÔ
+  //æ·±åº¦æµ‹è¯•
   // tell GL to only draw onto a pixel if the shape is closer to the viewer
   glEnable (GL_DEPTH_TEST); // enable depth-testing
   glDepthFunc (GL_LESS);  // depth-testing interprets a smaller value as "closer"
-  //glDepthFunc (GL_ALWAYS);  //The depth test always passes£¬¼´ºó»­µÄ»á¸²¸ÇÇ°ÃæµÄ
+  //glDepthFunc (GL_ALWAYS);  //The depth test always passesï¼Œå³åç”»çš„ä¼šè¦†ç›–å‰é¢çš„
 
 
   //face culling
@@ -357,7 +354,7 @@ int main(void)
   //glCullFace(GL_BACK);
   //glFrontFace(GL_CW);
 
-  //blending±ØĞëÏÈ»­²»Í¸Ã÷µÄÔÙ»­Í¸Ã÷µÄ
+  //blendingå¿…é¡»å…ˆç”»ä¸é€æ˜çš„å†ç”»é€æ˜çš„
   glEnable(GL_BLEND); 
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
