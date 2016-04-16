@@ -20,6 +20,16 @@ GLuint program, programfb;
 GLint attribute_coord2d;
 GLfloat alpha1, alpha2, alpha = 0;
 GLfloat pixel[3] = {0};
+glm::mat4 view1, projection1;
+//窗口的大小
+GLint width = 640, height = 480;
+//model矩阵的平移向量
+glm::vec3 cubePositions[] = {
+	glm::vec3(-1.8f, -0.2f, -8.5f),       //紫红色的物体，即第一个画的物体
+	glm::vec3( 0.4f,  0.0f, -5.5f)        //黄色的物体，即第二个画的物体
+};
+
+   
   const char *vs_source =
   "#version 410\n"
   "layout (location = 0) in vec3 position;"
@@ -31,20 +41,9 @@ GLfloat pixel[3] = {0};
   "void main(void){"
   "vec4 v = vec4(position, 1.0f);"
   "gl_Position = projection * view * model * v;" 
-  "vertexColor = color;"
+  "vertexColor = color/255;"
   "}";
-  /*
-   const char *vsfb_source =
-  "#version 410\n"
-  "layout (location = 0) in vec2 position;"
-  "layout (location = 1) in vec2 texCoords;"
-  "out vec2 TexCoords;"
-  "void main(void){"
-  "gl_Position = vec4(position.x, position.y, 0.0f, 1.0f);"
-  "TexCoords = texCoords;;" 
-  "}";
-  */
-
+ 
   const char *fs_cource =
   "#version 410\n"
   "in vec4 vertexColor;" 
@@ -53,29 +52,14 @@ GLfloat pixel[3] = {0};
   "color =vertexColor;"
   "}";
 
- /* 
-  const char *fsfb_cource =
-  "#version 410\n"
-  "in vec2 TexCoords;" 
-  "out vec4 color;"
-  "uniform sampler2D screenTexture;"
-  "void main(void){"
-  "color = texture(screenTexture, TexCoords);"
-  "}";
-  */
-
-
 int init_resources()
 {
   GLint compile_ok = GL_FALSE, link_ok = GL_FALSE;
   
   GLuint vs = glCreateShader(GL_VERTEX_SHADER);
-  //GLuint vsfb = glCreateShader(GL_VERTEX_SHADER);
   //第二参数指定了源码中有多少个字符串
   glShaderSource(vs, 1, &vs_source, NULL);
-  //glShaderSource(vsfb, 1, &vsfb_source, NULL);
   glCompileShader(vs);
-  //glCompileShader(vsfb);
   //检测调用glCompileShader后是否编译成功了
   glGetShaderiv(vs, GL_COMPILE_STATUS, &compile_ok);     
   if (compile_ok == GL_FALSE)
@@ -94,11 +78,8 @@ int init_resources()
     }
   
   GLuint fs = glCreateShader(GL_FRAGMENT_SHADER);
- // GLuint fsfb = glCreateShader(GL_FRAGMENT_SHADER);
   glShaderSource(fs, 1, &fs_cource, NULL);
- // glShaderSource(fsfb, 1, &fsfb_cource, NULL);
   glCompileShader(fs);
- // glCompileShader(fsfb);
   glGetShaderiv(fs, GL_COMPILE_STATUS, &compile_ok);
   if (compile_ok == GL_FALSE)
     {
@@ -116,13 +97,9 @@ int init_resources()
     }
   
   program = glCreateProgram();
- // programfb = glCreateProgram();
   glAttachShader(program, vs);
   glAttachShader(program, fs);
- // glAttachShader(programfb, vsfb);
- // glAttachShader(programfb, fsfb);
   glLinkProgram(program);
- // glLinkProgram(programfb);
   glGetProgramiv(program, GL_LINK_STATUS, &link_ok);
   if (!link_ok)
     {
@@ -133,39 +110,17 @@ int init_resources()
   //删除着色器对象
   glDeleteShader(vs);
   glDeleteShader(fs);
- // glDeleteShader(vsfb);
- // glDeleteShader(fsfb);
   return 1;
 }
 
-/* 纹理附加的framebuffer
-// Generates a texture that is suited for attachments to a framebuffer
-GLuint generateAttachmentTexture(GLboolean depth, GLboolean stencil)
-{
-    // What enum to use?
-    GLenum attachment_type;
-    if(!depth && !stencil)
-        attachment_type = GL_RGB;
-    else if(depth && !stencil)
-        attachment_type = GL_DEPTH_COMPONENT;
-    else if(!depth && stencil)
-        attachment_type = GL_STENCIL_INDEX;
-
-    //Generate texture ID and load texture data 
-    GLuint textureID;
-    glGenTextures(1, &textureID);
-    glBindTexture(GL_TEXTURE_2D, textureID);
-    if(!depth && !stencil)
-        glTexImage2D(GL_TEXTURE_2D, 0, attachment_type, 640, 480, 0, attachment_type, GL_UNSIGNED_BYTE, NULL);
-    else // Using both a stencil and depth test, needs special format arguments
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, 640, 480, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glBindTexture(GL_TEXTURE_2D, 0);
-
-    return textureID;
+//用于把投影矩阵和视图矩阵传给ray casting
+glm::mat4 get_projection (glm::mat4 projection){
+	return projection;
 }
-*/
+glm::mat4 get_view (glm::mat4 view){
+	return view;
+}
+
 
 void onDisplay()
 {
@@ -183,29 +138,29 @@ void onDisplay()
 
 	//第一个立方体的顶点数据
 	//透明度
-	alpha1 = 1.0f;
+	alpha1 = 255.0f;
 	GLfloat points1[] = {
-		-1.0f, -1.0f, -1.0f,      1.0f, 0.0f, 1.0f,alpha1,    //0
-		-1.0f, -1.0f,  1.0f,      1.0f, 0.0f, 1.0f,alpha1,    //1
-		-1.0f,  1.0f,  1.0f,      1.0f, 0.0f, 1.0f,alpha1,    //2
-		 1.0f,  1.0f, -1.0f,      1.0f, 0.0f, 1.0f,alpha1,	  //3
-		-1.0f,  1.0f, -1.0f,      1.0f, 0.0f, 1.0f,alpha1,	  //4
-		 1.0f,  1.0f,  1.0f,      1.0f, 0.0f, 1.0f,alpha1,	  //5
-		 1.0f, -1.0f,  1.0f,      1.0f, 0.0f, 1.0f,alpha1,	  //6
-		 1.0f, -1.0f, -1.0f,      1.0f, 0.0f, 1.0f,alpha1     //7
+		-1.0f, -1.0f, -1.0f,      255, 0, 255,alpha1,     //0
+		-1.0f, -1.0f,  1.0f,      255, 0, 255,alpha1,     //1
+		-1.0f,  1.0f,  1.0f,      255, 0, 255,alpha1,     //2
+		 1.0f,  1.0f, -1.0f,      255, 0, 255,alpha1, 	  //3
+		-1.0f,  1.0f, -1.0f,      255, 0, 255,alpha1, 	  //4
+		 1.0f,  1.0f,  1.0f,      255, 0, 255,alpha1, 	  //5
+		 1.0f, -1.0f,  1.0f,      255, 0, 255,alpha1, 	  //6
+		 1.0f, -1.0f, -1.0f,      255, 0, 255,alpha1,     //7
 	};
 
 	//第二个立方体的顶点数据
-	alpha2 = 0.3f;
+	alpha2 = 0.3f*255;
 	GLfloat points2[] = {
-		-1.0f, -1.0f, -1.0f,      1.0f, 1.0f, 0.0f,alpha2,    //0
-		-1.0f, -1.0f,  1.0f,      1.0f, 1.0f, 0.0f,alpha2,    //1
-		-1.0f,  1.0f,  1.0f,      1.0f, 1.0f, 0.0f,alpha2,    //2
-		 1.0f,  1.0f, -1.0f,      1.0f, 1.0f, 0.0f,alpha2,	  //3
-		-1.0f,  1.0f, -1.0f,      1.0f, 1.0f, 0.0f,alpha2,	  //4
-		 1.0f,  1.0f,  1.0f,      1.0f, 1.0f, 0.0f,alpha2,	  //5
-		 1.0f, -1.0f,  1.0f,      1.0f, 1.0f, 0.0f,alpha2,	  //6
-		 1.0f, -1.0f, -1.0f,      1.0f, 1.0f, 0.0f,alpha2     //7
+		-1.0f, -1.0f, -1.0f,      255, 255, 0, alpha2,    //0
+		-1.0f, -1.0f,  1.0f,      255, 255, 0, alpha2,    //1
+		-1.0f,  1.0f,  1.0f,      255, 255, 0, alpha2,    //2
+		 1.0f,  1.0f, -1.0f,      255, 255, 0, alpha2,	  //3
+		-1.0f,  1.0f, -1.0f,      255, 255, 0, alpha2,	  //4
+		 1.0f,  1.0f,  1.0f,      255, 255, 0, alpha2,	  //5
+		 1.0f, -1.0f,  1.0f,      255, 255, 0, alpha2,	  //6
+		 1.0f, -1.0f, -1.0f,      255, 255, 0, alpha2,    //7
 	};
 
 	GLuint index[] = {
@@ -223,18 +178,7 @@ void onDisplay()
 		 5, 3, 4,  //上面右
 		 5, 4, 2   //上面左
 	};
-/*
-	GLfloat quadVertices[] = {   // Vertex attributes for a quad that fills the entire screen in Normalized Device Coordinates.
-        // Positions   // TexCoords
-        -1.0f,  1.0f,  0.0f, 1.0f,
-        -1.0f, -1.0f,  0.0f, 0.0f,
-         1.0f, -1.0f,  1.0f, 0.0f,
 
-        -1.0f,  1.0f,  0.0f, 1.0f,
-         1.0f, -1.0f,  1.0f, 0.0f,
-         1.0f,  1.0f,  1.0f, 1.0f
-    };	
-*/
   //用于存储第一个立方体的顶点数据
   GLuint vbo1 = 0;
   glGenBuffers(1, &vbo1);
@@ -279,36 +223,21 @@ void onDisplay()
   glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 7 * sizeof (GL_FLOAT), (GLvoid*)(3 * sizeof(GL_FLOAT)));
   glEnableVertexAttribArray(1);
   glBindVertexArray(0);
-/*
-  GLuint quadVAO, quadVBO;
-  glGenVertexArrays(1, &quadVAO);
-  glGenBuffers(1, &quadVBO);
-  glBindVertexArray(quadVAO);
-  glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
-  glEnableVertexAttribArray(0);
-  glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (GLvoid*)0);
-  glEnableVertexAttribArray(1);
-  glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (GLvoid*)(2 * sizeof(GLfloat)));
-  glBindVertexArray(0);
-  */
-  // Framebuffers
-  /*
-  GLuint framebuffer;
-  glGenFramebuffers(1, &framebuffer);
-  glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);  
-  // Create a color attachment texture
-  GLuint textureColorbuffer = generateAttachmentTexture(false, false);
-  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureColorbuffer, 0);
-  if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-	printf("::FRAMEBUFFER:: Framebuffer is not complete!");
-  glBindFramebuffer(GL_FRAMEBUFFER, 0);
-  */
 
-   //创建平移
+   //创建视图矩阵（与摄像机有关），投影矩阵以及模型矩阵
    glm::mat4 view;  
    glm::mat4 projection;
-   view = glm::translate(view, glm::vec3(0.0f, 0.0f, -10.0f));
+   //摄像机的相关参数
+   glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
+   glm::vec3 cameraTarget = glm::vec3(0.0f, 0.0f, 0.0f);
+   glm::vec3 cameraDirection = glm::normalize(cameraPos - cameraTarget);
+   glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f); 
+   glm::vec3 cameraRight = glm::normalize(glm::cross(up, cameraDirection));
+   glm::vec3 cameraUp = glm::cross(cameraDirection, cameraRight);
+   view = glm::lookAt(glm::vec3(0.0f, 0.0f, 3.0f), 
+           glm::vec3(0.0f, 0.0f, 0.0f), 
+           glm::vec3(0.0f, 1.0f, 0.0f));
+
    projection = glm::perspective(glm::radians(45.0f), (GLfloat)640 / (GLfloat)480, 0.1f, 100.0f);
    //找到着色器中uniform的索引/地址。当我们得到uniform的索引/地址后，我们就可以更新它的值了
    GLint modelLoc = glGetUniformLocation(program, "model");
@@ -320,24 +249,12 @@ void onDisplay()
    //改变相应矩阵的值，将矩阵传给shader
    glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
    glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection)); 
-   
-   //平移
-   glm::vec3 cubePositions[] = {
-	glm::vec3(-0.8f, -0.2f, 0.5f),        //靠前的,紫红色的物体，即第一个画的物体
-	glm::vec3( 0.4f,  0.0f, 2.5f)        //靠后的,改了z的值为正则该物体会在第一个前方,用于测试深度测试的参数
-   };
-   
+  
    //绑定第一个vao
    glm::mat4 model;
    model = glm::translate(model, cubePositions[0]);
    model = glm::rotate(model,glm::radians((GLfloat)glfwGetTime() * 10.0f), glm::vec3(0.0f, 1.0f, 0.0f));
    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-  /*//使用附加纹理的framebuffer
-   glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
-   glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // We're not using stencil buffer so why bother with clearing?
-   glEnable(GL_DEPTH_TEST);
-   glDepthFunc (GL_LESS); */
    glUseProgram(program);
 
    glBindVertexArray(vao1);
@@ -357,23 +274,58 @@ void onDisplay()
    glBindVertexArray(vao2);
    glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT,index);
    glBindVertexArray(0);
-  //glDrawArrays(GL_TRIANGLES, 0, 3*12);  //第三个参数表示顶点的数目
+   //glDrawArrays(GL_TRIANGLES, 0, 3*12);  //第三个参数表示顶点的数目
 
-  /*//使用附加纹理的framebuffer
-   glBindFramebuffer(GL_FRAMEBUFFER, 0);
-   // Clear all relevant buffers
-   glClearColor(1.0f, 1.0f, 1.0f, 1.0f); // Set clear color to white (not really necessery actually, since we won't be able to see behind the quad anyways)
-   glClear(GL_COLOR_BUFFER_BIT);
-   glDisable(GL_DEPTH_TEST); 
-   glUseProgram(programfb);  
-   glBindVertexArray(quadVAO);
-   glDisable(GL_DEPTH_TEST);
-   glBindTexture(GL_TEXTURE_2D, textureColorbuffer);
-   glDrawArrays(GL_TRIANGLES, 0, 6);
-   glBindVertexArray(0);
-   */
+   projection1 = get_projection(projection);
+   view1 = get_view(view);
+
+
 }
 
+
+//---------------------------------------------------------------------------
+//	 该函数用于获取ray向量，即两个端点的坐标v1, v2
+//   v1表示近平面的坐标，v2表示远平面的坐标
+//   viewport表示视口区域
+//   利用glm::unProject函数来将窗口的二维坐标转换为世界坐标系中的三维坐标
+//---------------------------------------------------------------------------
+
+void Get3DRayUnderMouse(glm::vec3* v1, glm::vec3* v2, double xpos, double ypos)
+{	
+	glm::vec4 viewport = glm::vec4(0.0f, 0.0f,width, height);
+	*v1 = glm::unProject(glm::vec3(float(xpos), height-float(ypos), 0.0f), view1, projection1, viewport);
+	*v2 = glm::unProject(glm::vec3(float(xpos), height-float(ypos), 1.0f), view1, projection1, viewport);
+}
+
+//----------------------------------------------------------------------------
+//	该函数用于检测ray是否穿过包围cube的球体
+//  vA表示ray的起点坐标，vB表示ray的终点坐标
+//  先找到在ray向量上离球体最近的点，然后比较该点到球体的中心距离与半径的大小
+//  来确定ray是否穿过了该球体
+//----------------------------------------------------------------------------
+bool RaySphereCollision(glm::vec3 vSphereCenter, float fSphereRadius, glm::vec3 vA, glm::vec3 vB)
+{
+	// 创建一个向量从点vA到球的中心
+	glm::vec3 vDirToSphere = vSphereCenter - vA;
+	// 求从点vA到vB的单位向量
+	glm::vec3 vLineDir = glm::normalize(vB-vA);
+	// 求ray向量的长度
+	float fLineLength = glm::distance(vA, vB);
+	// 利用点乘将vDirToSphere向量投影到ray的单位向量上
+	float t = glm::dot(vDirToSphere, vLineDir);
+	glm::vec3 vClosestPoint;
+	// 如果投影的距离的小于或等于0，即ray向量与vDirToSphere向量的夹角大于90度，此时最近的点是vA
+	if (t <= 0.0f)
+		vClosestPoint = vA;
+	// 如果投影的距离大于ray向量的长度，则最近的点是vB
+	else if (t >= fLineLength)
+		vClosestPoint = vB;
+	// 否则最近的点在ray向量上，求出该点的坐标
+	else
+		vClosestPoint = vA+vLineDir*t;
+	// 返回ray向量上最近的点与球中心的距离是否小于或等于半径
+	return glm::distance(vSphereCenter, vClosestPoint) <= fSphereRadius;
+}
 
 
 
@@ -386,7 +338,8 @@ static void error_callback(int error, const char* description)
 {
   fputs(description, stderr);
 }
-//回调函数
+
+//键盘的回调函数
 static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 { 
   //当按下escape键时关闭glfw窗口
@@ -396,11 +349,52 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 }
 
 //上一帧鼠标左键是否按下
+//该变量主要是使每点击一次鼠标只输出一次，避免点击一次鼠标输出很多次
 GLboolean wasleftbuttonpresslastframe = false;
+
 //鼠标的回调函数
 void mouse_callback(GLFWwindow* window, double xpos, double ypos){
 
- 
+//----------------------------------------------------------------------------------
+//   用raycasting的方法来picking cube
+//   该方法是ray是否穿过一个包围cube的球体来检测鼠标是否点击了该cube
+//   包围球体的直径的长度是cube的斜对角线
+//----------------------------------------------------------------------------------
+if ( GLFW_PRESS == glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT)){
+	if (wasleftbuttonpresslastframe == false)
+	{   
+		bool isIntersection[2];
+		GLfloat radius = 1.414;
+		glm::vec3 v1;
+		glm::vec3 v2;
+		Get3DRayUnderMouse(&v1, &v2, xpos, ypos);
+		for (int i = 0; i < 2; i++)
+			isIntersection[i] = RaySphereCollision(cubePositions[i], radius, v1, v2);
+		
+		if (isIntersection[0] == true && isIntersection[1] == false)
+			printf("cube1\n");
+		else if (isIntersection[1] == true && isIntersection[0] == false)
+			printf("cube2\n");
+		else if (isIntersection[0] == true && isIntersection[1] == true){
+			 // 在eye space中z越大则物体越靠前
+			 if (cubePositions[0].z > cubePositions[1].z)
+				 printf ("cube1\n");
+			 else printf ("cube2\n");
+		}
+		else printf("no cube \n");
+	
+	wasleftbuttonpresslastframe = true;
+  }
+ }
+
+   else if (GLFW_RELEASE == glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT))
+			wasleftbuttonpresslastframe = false;
+
+
+ //-----------------------------------------------------------------------------------
+ //   用color buffer的方法来picking cube
+ //-----------------------------------------------------------------------------------
+/*
   if ( GLFW_PRESS == glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT))
    {   
 	    
@@ -410,7 +404,7 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos){
 		glFinish ();
 		//窗口的坐标原点在左上角，由左向右x增加，由上至下y增加
         //glfwGetCursorPos(window, &xpos, &ypos);
-		glReadPixels((GLint)xpos,(GLint) ypos,1, 1, GL_RGB, GL_FLOAT, pixel);
+		glReadPixels((GLint)xpos,480-(GLint) ypos,1, 1, GL_RGB, GL_FLOAT, pixel);
 		//printf("alpha: %f  %f  %f\n",pixel[0], pixel[1], pixel[2]);
 		if (pixel[0] == 1.0f && pixel[1] == 0.0f && pixel[2] == 1.0f)
 			printf ("the selection is : cube1\n");
@@ -423,27 +417,9 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos){
 	}
   else if (GLFW_RELEASE == glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT))
 			wasleftbuttonpresslastframe = false;
-}
-/*
-void GLFWCALL mouse_callback1 (int button, int action){
-
-	if (button == GLFW_MOUSE_BUTTON_1 && action == GLFW_PRESS)
-	{
-		glFlush();
-		glFinish ();
-		//窗口的坐标原点在左上角，由左向右x增加，由上至下y增加
-        //glfwGetCursorPos(window, &xpos, &ypos);
-		glReadPixels((GLint)xpos,(GLint) ypos,1, 1, GL_RGB, GL_FLOAT, pixel);
-		printf("alpha: %f  %f  %f\n",pixel[0], pixel[1], pixel[2]);
-		if (pixel[0] == 1.0f && pixel[1] == 0.0f && pixel[2] == 1.0f)
-			printf ("the selection is : cube1\n");
-		else if (pixel[0] == 1.0f && pixel[1] == 1.0f && pixel[2] == 0.0f)
-			printf ("the selection is : cube2\n");
-		else if (pixel[0] == 0.0f && pixel[1] == 0.0f && pixel[2] == 0.0f)
-			printf ("the selection is : no cube\n");
-	}
-}
 */
+}
+
 int main(void)
 {
  
