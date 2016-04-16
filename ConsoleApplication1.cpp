@@ -1,5 +1,9 @@
 
 #include "stdafx.h"
+#include <string>
+#include <algorithm>
+using namespace std;
+//#define GLEW_STATIC
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #define GLM_FORCE_RADIANS
@@ -7,14 +11,25 @@
 #include <GLM/glm.hpp>
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp> 
-#include <glm/mat4x4.hpp>  
+#include <glm/mat4x4.hpp>   
 #include <glm/gtc/matrix_transform.hpp>
 #include <stdlib.h>
 #include <stdio.h>
 
-GLuint program;
+GLuint program, programfb;
 GLint attribute_coord2d;
+GLfloat alpha1, alpha2, alpha = 0;
+GLfloat pixel[3] = {0};
+glm::mat4 view1, projection1;
+//´°¿ÚµÄ´óĞ¡
+GLint width = 640, height = 480;
+//model¾ØÕóµÄÆ½ÒÆÏòÁ¿
+glm::vec3 cubePositions[] = {
+	glm::vec3(-1.8f, -0.2f, -8.5f),       //×ÏºìÉ«µÄÎïÌå£¬¼´µÚÒ»¸ö»­µÄÎïÌå
+	glm::vec3( 0.4f,  0.0f, -5.5f)        //»ÆÉ«µÄÎïÌå£¬¼´µÚ¶ş¸ö»­µÄÎïÌå
+};
 
+   
   const char *vs_source =
   "#version 410\n"
   "layout (location = 0) in vec3 position;"
@@ -22,16 +37,13 @@ GLint attribute_coord2d;
   "out vec4 vertexColor;"
   "uniform mat4 model;"
   "uniform mat4 view;"
-
   "uniform mat4 projection;"
-
   "void main(void){"
   "vec4 v = vec4(position, 1.0f);"
   "gl_Position = projection * view * model * v;" 
-  "vertexColor = color;"
+  "vertexColor = color/255;"
   "}";
-
-
+ 
   const char *fs_cource =
   "#version 410\n"
   "in vec4 vertexColor;" 
@@ -45,10 +57,11 @@ int init_resources()
   GLint compile_ok = GL_FALSE, link_ok = GL_FALSE;
   
   GLuint vs = glCreateShader(GL_VERTEX_SHADER);
-
+  //µÚ¶ş²ÎÊıÖ¸¶¨ÁËÔ´ÂëÖĞÓĞ¶àÉÙ¸ö×Ö·û´®
   glShaderSource(vs, 1, &vs_source, NULL);
   glCompileShader(vs);
-  glGetShaderiv(vs, GL_COMPILE_STATUS, &compile_ok);
+  //¼ì²âµ÷ÓÃglCompileShaderºóÊÇ·ñ±àÒë³É¹¦ÁË
+  glGetShaderiv(vs, GL_COMPILE_STATUS, &compile_ok);     
   if (compile_ok == GL_FALSE)
     {
 
@@ -65,7 +78,6 @@ int init_resources()
     }
   
   GLuint fs = glCreateShader(GL_FRAGMENT_SHADER);
-
   glShaderSource(fs, 1, &fs_cource, NULL);
   glCompileShader(fs);
   glGetShaderiv(fs, GL_COMPILE_STATUS, &compile_ok);
@@ -94,133 +106,113 @@ int init_resources()
       fprintf(stderr, "glinkprogram\n");
       return 0;
     }
-
+  
+  //É¾³ı×ÅÉ«Æ÷¶ÔÏó
+  glDeleteShader(vs);
+  glDeleteShader(fs);
   return 1;
 }
+
+//ÓÃÓÚ°ÑÍ¶Ó°¾ØÕóºÍÊÓÍ¼¾ØÕó´«¸øray casting
+glm::mat4 get_projection (glm::mat4 projection){
+	return projection;
+}
+glm::mat4 get_view (glm::mat4 view){
+	return view;
+}
+
 
 void onDisplay()
 {
 
-  //æ„å»ºä¸€ä¸ªç«‹æ–¹ä½“éœ€è¦36ä¸ªç‚¹ï¼Œæ¯ä¸ªæ­£æ–¹å½¢æœ‰6ä¸ªé¢ï¼Œæ¯ä¸ªé¢ç”±2ä¸ªä¸‰è§’å½¢ç»„æˆï¼Œ
-  //3ä¸ªè¿ç»­çš„ç‚¹æ„æˆä¸€ä¸ªä¸‰è§’å½¢
-  //ç¬¬ä¸€ä¸ªçº¯è‰²ç«‹æ–¹ä½“å’Œæ¯ä¸ªé¡¶ç‚¹çš„é¢œè‰²å€¼
-  //ç‚¹ï¼ˆ-1ï¼Œ-1ï¼Œ-1ï¼‰çš„é¢œè‰²ä¸ºï¼ˆ0.5ï¼Œ0ï¼Œ0ï¼‰ï¼›ç‚¹ï¼ˆ-1ï¼Œ-1ï¼Œ1ï¼‰çš„é¢œè‰²ä¸ºï¼ˆ0.5ï¼Œ0.5ï¼Œ0ï¼‰ï¼›ç‚¹ï¼ˆ-1ï¼Œ1ï¼Œ1ï¼‰çš„é¢œè‰²ä¸ºï¼ˆ0.5ï¼Œ0ï¼Œ0.5ï¼‰
-  //ç‚¹ï¼ˆ1ï¼Œ1ï¼Œ-1ï¼‰çš„é¢œè‰²ä¸ºï¼ˆ0.5ï¼Œ0.5ï¼Œ0.5ï¼‰ï¼›ç‚¹ï¼ˆ-1ï¼Œ1ï¼Œ-1ï¼‰çš„é¢œè‰²ä¸ºï¼ˆ0ï¼Œ0.5ï¼Œ0ï¼‰ï¼›ç‚¹ï¼ˆ1ï¼Œ1ï¼Œ1ï¼‰çš„é¢œè‰²ä¸ºï¼ˆ0ï¼Œ0ï¼Œ0.5ï¼‰
-  //ç‚¹ï¼ˆ1ï¼Œ-1ï¼Œ1ï¼‰çš„é¢œè‰²ä¸ºï¼ˆ0ï¼Œ0.5ï¼Œ0.5ï¼‰ï¼›ç‚¹ï¼ˆ1ï¼Œ-1ï¼Œ-1ï¼‰çš„é¢œè‰²ä¸ºï¼ˆ0.2ï¼Œ0.2ï¼Œ0.2ï¼‰
-  /*
-	GLfloat alpha = 0.5f;
-	GLfloat points1[] = {
-     -1.0f,-1.0f,-1.0f,  0.5f, 0.0f, 0.0f, alpha,  //ç¬¬ä¸€ä¸ªä¸‰è§’å½¢å¼€å§‹çš„ç‚¹
-     -1.0f,-1.0f, 1.0f,  0.5f, 0.5f, 0.0f, alpha,
-     -1.0f, 1.0f, 1.0f,  0.5f, 0.0f, 0.5f, alpha, //ç¬¬ä¸€ä¸ªä¸‰è§’å½¢ç»“æŸçš„ç‚¹  
-      1.0f, 1.0f,-1.0f,  0.5f, 0.5f, 0.5f, alpha, //ç¬¬äºŒä¸ªä¸‰è§’å½¢å¼€å§‹çš„ç‚¹  
-     -1.0f,-1.0f,-1.0f,  0.5f, 0.0f, 0.0f, alpha,
-     -1.0f, 1.0f,-1.0f,  0.0f, 0.5f, 0.0f, alpha, // ç¬¬äºŒä¸ªä¸‰è§’å½¢ç»“æŸçš„ç‚¹
-      1.0f,-1.0f, 1.0f,  0.0f, 0.5f, 0.5f, alpha,
-	 -1.0f,-1.0f,-1.0f,  0.5f, 0.0f, 0.0f, alpha, 
-	  1.0f,-1.0f,-1.0f,  0.2f, 0.2f, 0.2f, alpha, // 
-      1.0f, 1.0f,-1.0f,  0.5f, 0.5f, 0.5f, alpha, 
-	  1.0f,-1.0f,-1.0f,  0.2f, 0.2f, 0.2f, alpha,
-	 -1.0f,-1.0f,-1.0f,  0.5f, 0.0f, 0.0f, alpha, //
-	 -1.0f,-1.0f,-1.0f,  0.5f, 0.0f, 0.0f, alpha,
-	 -1.0f, 1.0f, 1.0f,  0.5f, 0.0f, 0.5f, alpha,
-	 -1.0f, 1.0f,-1.0f,  0.0f, 0.5f, 0.0f, alpha, //
-	  1.0f,-1.0f, 1.0f,  0.0f, 0.5f, 0.5f, alpha,
-	 -1.0f,-1.0f, 1.0f,  0.5f, 0.5f, 0.0f, alpha,
-	 -1.0f,-1.0f,-1.0f,  0.5f, 0.0f, 0.0f, alpha, //
-	 -1.0f, 1.0f, 1.0f,  0.5f, 0.0f, 0.5f, alpha,
-	 -1.0f,-1.0f, 1.0f,  0.5f, 0.5f, 0.0f, alpha,
-	  1.0f,-1.0f, 1.0f,  0.0f, 0.5f, 0.5f, alpha, //
-	  1.0f, 1.0f, 1.0f,  0.0f, 0.0f, 0.5f, alpha, 
-	  1.0f,-1.0f,-1.0f,  0.2f, 0.2f, 0.2f, alpha, 
-	  1.0f, 1.0f,-1.0f,  0.5f, 0.5f, 0.5f, alpha, //
-	  1.0f,-1.0f,-1.0f,  0.2f, 0.2f, 0.2f, alpha, 
-	  1.0f, 1.0f, 1.0f,  0.0f, 0.0f, 0.5f, alpha, 
-	  1.0f,-1.0f, 1.0f,  0.0f, 0.5f, 0.5f, alpha, //
-	  1.0f, 1.0f, 1.0f,  0.0f, 0.0f, 0.5f, alpha, 
-	  1.0f, 1.0f,-1.0f,  0.5f, 0.5f, 0.5f, alpha,
-	 -1.0f, 1.0f,-1.0f,  0.0f, 0.5f, 0.0f, alpha, //
-	  1.0f, 1.0f, 1.0f,  0.0f, 0.0f, 0.5f, alpha,
-	 -1.0f, 1.0f,-1.0f,  0.0f, 0.5f, 0.0f, alpha,
-	 -1.0f, 1.0f, 1.0f,  0.5f, 0.0f, 0.5f, alpha, //
-      1.0f, 1.0f, 1.0f,  0.0f, 0.0f, 0.5f, alpha,
-	 -1.0f, 1.0f, 1.0f,  0.5f, 0.0f, 0.5f, alpha, 
-	  1.0f,-1.0f, 1.0f,  0.0f, 0.5f, 0.5f, alpha
-	  
-  };
-  */
+  //¹¹½¨Ò»¸öÁ¢·½ÌåĞèÒª36¸öµã£¬Ã¿¸öÕı·½ĞÎÓĞ6¸öÃæ£¬Ã¿¸öÃæÓÉ2¸öÈı½ÇĞÎ×é³É£¬
+  //3¸öÁ¬ĞøµÄµã¹¹³ÉÒ»¸öÈı½ÇĞÎ
+  //µÚÒ»¸ö´¿É«Á¢·½ÌåºÍÃ¿¸ö¶¥µãµÄÑÕÉ«Öµ
+  //µã£¨-1£¬-1£¬-1£©µÄÑÕÉ«Îª£¨0.5£¬0£¬0£©£»µã£¨-1£¬-1£¬1£©µÄÑÕÉ«Îª£¨0.5£¬0.5£¬0£©£»µã£¨-1£¬1£¬1£©µÄÑÕÉ«Îª£¨0.5£¬0£¬0.5£©
+  //µã£¨1£¬1£¬-1£©µÄÑÕÉ«Îª£¨0.5£¬0.5£¬0.5£©£»µã£¨-1£¬1£¬-1£©µÄÑÕÉ«Îª£¨0£¬0.5£¬0£©£»µã£¨1£¬1£¬1£©µÄÑÕÉ«Îª£¨0£¬0£¬0.5£©
+  //µã£¨1£¬-1£¬1£©µÄÑÕÉ«Îª£¨0£¬0.5£¬0.5£©£»µã£¨1£¬-1£¬-1£©µÄÑÕÉ«Îª£¨0.2£¬0.2£¬0.2£©
 
 	/***************************************************************
-	 ç´¢å¼•æ–¹å¼ç”»ç«‹æ–¹ä½“
+	 Ë÷Òı·½Ê½»­Á¢·½Ìå
      **************************************************************/
 
-	//ç¬¬ä¸€ä¸ªç«‹æ–¹ä½“çš„é¡¶ç‚¹æ•°æ®
-	//é€æ˜åº¦
-	GLfloat alpha1 = 1.0f;
+	//µÚÒ»¸öÁ¢·½ÌåµÄ¶¥µãÊı¾İ
+	//Í¸Ã÷¶È
+	alpha1 = 255.0f;
 	GLfloat points1[] = {
-		-1.0f, -1.0f, -1.0f,      0.5f, 0.0f, 0.0f,alpha1,    //0
-		-1.0f, -1.0f,  1.0f,      0.5f, 0.5f, 0.0f,alpha1,    //1
-		-1.0f,  1.0f,  1.0f,      0.5f, 0.0f, 0.5f,alpha1,    //2
-		 1.0f,  1.0f, -1.0f,      0.5f, 0.5f, 0.5f,alpha1,	  //3
-		-1.0f,  1.0f, -1.0f,      0.0f, 0.5f, 0.0f,alpha1,	  //4
-		 1.0f,  1.0f,  1.0f,      0.0f, 0.0f, 0.5f,alpha1,	  //5
-		 1.0f, -1.0f,  1.0f,      0.0f, 0.5f, 0.5f,alpha1,	  //6
-		 1.0f, -1.0f, -1.0f,      1.0f, 1.0f, 1.0f,alpha1     //7
+		-1.0f, -1.0f, -1.0f,      255, 0, 255,alpha1,     //0
+		-1.0f, -1.0f,  1.0f,      255, 0, 255,alpha1,     //1
+		-1.0f,  1.0f,  1.0f,      255, 0, 255,alpha1,     //2
+		 1.0f,  1.0f, -1.0f,      255, 0, 255,alpha1, 	  //3
+		-1.0f,  1.0f, -1.0f,      255, 0, 255,alpha1, 	  //4
+		 1.0f,  1.0f,  1.0f,      255, 0, 255,alpha1, 	  //5
+		 1.0f, -1.0f,  1.0f,      255, 0, 255,alpha1, 	  //6
+		 1.0f, -1.0f, -1.0f,      255, 0, 255,alpha1,     //7
 	};
 
-	//ç¬¬äºŒä¸ªç«‹æ–¹ä½“çš„é¡¶ç‚¹æ•°æ®
-	GLfloat alpha2 = 0.3f;
+	//µÚ¶ş¸öÁ¢·½ÌåµÄ¶¥µãÊı¾İ
+	alpha2 = 0.3f*255;
 	GLfloat points2[] = {
-		-1.0f, -1.0f, -1.0f,      0.5f, 0.0f, 0.0f,alpha2,    //0
-		-1.0f, -1.0f,  1.0f,      0.5f, 0.5f, 0.0f,alpha2,    //1
-		-1.0f,  1.0f,  1.0f,      0.5f, 0.0f, 0.5f,alpha2,    //2
-		 1.0f,  1.0f, -1.0f,      0.5f, 0.5f, 0.5f,alpha2,	  //3
-		-1.0f,  1.0f, -1.0f,      0.0f, 0.5f, 0.0f,alpha2,	  //4
-		 1.0f,  1.0f,  1.0f,      0.0f, 0.0f, 0.5f,alpha2,	  //5
-		 1.0f, -1.0f,  1.0f,      0.0f, 0.5f, 0.5f,alpha2,	  //6
-		 1.0f, -1.0f, -1.0f,      0.2f, 0.2f, 0.2f,alpha2     //7
+		-1.0f, -1.0f, -1.0f,      255, 255, 0, alpha2,    //0
+		-1.0f, -1.0f,  1.0f,      255, 255, 0, alpha2,    //1
+		-1.0f,  1.0f,  1.0f,      255, 255, 0, alpha2,    //2
+		 1.0f,  1.0f, -1.0f,      255, 255, 0, alpha2,	  //3
+		-1.0f,  1.0f, -1.0f,      255, 255, 0, alpha2,	  //4
+		 1.0f,  1.0f,  1.0f,      255, 255, 0, alpha2,	  //5
+		 1.0f, -1.0f,  1.0f,      255, 255, 0, alpha2,	  //6
+		 1.0f, -1.0f, -1.0f,      255, 255, 0, alpha2,    //7
 	};
 
 	GLuint index[] = {
 
-	     0, 1, 2,  //å·¦ä¾§ä¸‹
-		 0, 2, 4,  //å·¦ä¾§ä¸Š		
-		 5, 7, 3,  //å³é¢ä¸Š
-		 7, 5, 6,  //å³é¢ä¸‹
-		 6, 1, 0,  //åº•é¢å·¦
-		 6, 0, 7,  //åº•é¢å³	
-		 3, 0, 4,  //æ­£é¢ä¸Š
-		 3, 7, 0,  //æ­£é¢ä¸‹ 
-		 5, 2, 6,  //èƒŒé¢ä¸Š
-		 2, 1, 6,  //èƒŒé¢ä¸‹
-		 5, 3, 4,  //ä¸Šé¢å³
-		 5, 4, 2   //ä¸Šé¢å·¦
+	     0, 1, 2,  //×ó²àÏÂ
+		 0, 2, 4,  //×ó²àÉÏ		
+		 5, 7, 3,  //ÓÒÃæÉÏ
+		 7, 5, 6,  //ÓÒÃæÏÂ
+		 6, 1, 0,  //µ×Ãæ×ó
+		 6, 0, 7,  //µ×ÃæÓÒ	
+		 3, 0, 4,  //ÕıÃæÉÏ
+		 3, 7, 0,  //ÕıÃæÏÂ 
+		 5, 2, 6,  //±³ÃæÉÏ
+		 2, 1, 6,  //±³ÃæÏÂ
+		 5, 3, 4,  //ÉÏÃæÓÒ
+		 5, 4, 2   //ÉÏÃæ×ó
 	};
 
-  //ç”¨äºå­˜å‚¨ç¬¬ä¸€ä¸ªç«‹æ–¹ä½“çš„é¡¶ç‚¹æ•°æ®
+  //ÓÃÓÚ´æ´¢µÚÒ»¸öÁ¢·½ÌåµÄ¶¥µãÊı¾İ
   GLuint vbo1 = 0;
   glGenBuffers(1, &vbo1);
+  //°Ñ¶¥µãÊı×é¸´ÖÆµ½»º³åÖĞÌá¹©¸øOpenGLÊ¹ÓÃ
   glBindBuffer(GL_ARRAY_BUFFER, vbo1);
   glBufferData(GL_ARRAY_BUFFER, sizeof(points1), points1, GL_STATIC_DRAW);
   glBindBuffer(GL_ARRAY_BUFFER,0);
-  //å­˜å‚¨ç¬¬äºŒä¸ªç«‹æ–¹ä½“çš„é¡¶ç‚¹æ•°æ®
+  //´æ´¢µÚ¶ş¸öÁ¢·½ÌåµÄ¶¥µãÊı¾İ
   GLuint vbo2 = 0;
   glGenBuffers(1, &vbo2);
   glBindBuffer(GL_ARRAY_BUFFER, vbo2);
   glBufferData(GL_ARRAY_BUFFER, sizeof(points2), points2, GL_STATIC_DRAW);
   glBindBuffer(GL_ARRAY_BUFFER,0);
-  //ç»‘å®šç¬¬ä¸€ä¸ªvao
+  //°ó¶¨µÚÒ»¸övao
   GLuint vao1 = 0;
   glGenVertexArrays(1, &vao1);
   glBindVertexArray(vao1);
   glEnableVertexAttribArray(0);   
   glBindBuffer(GL_ARRAY_BUFFER, vbo1);
+  //½âÊÍ¶¥µãÊı¾İ£¬ÉèÖÃ¶¥µãÊôĞÔÖ¸Õë
+  //µÚÒ»¸ö²ÎÊıÖ¸¶¨°ÑÊı¾İ´«µ½ÄÄ¸öÊôĞÔÖĞ
+  //µÚ¶ş¸ö²ÎÊıÖ¸¶¨¶¥µãÊôĞÔµÄ´óĞ¡£¬3¼´±íÃ÷¸ÃÊôĞÔÊÇÓÉ3¸öÊıÖµ×é³É
+  //µÚÈı¸ö²ÎÊıÖ¸¶¨Êı¾İµÄÀàĞÍ
+  //µÚËÄ¸ö²ÎÊı¶¨ÒåÊÇ·ñÏ£Íû²ÎÊı±»±ê×¼»¯£¬¼´ËùÓĞÊı¾İ»á±»Ó³Éäµ½0£¨¶ÔÓÚÓĞ·ûºÅĞÍsignedÊı¾İÊÇ-1ºÍ1Ö®¼ä
+  //µÚÎå¸ö²ÎÊı½Ğ×ö²½³¤(Stride)£¬Ëü¸æËßÎÒÃÇÔÚÁ¬ĞøµÄ¶¥µãÊôĞÔÖ®¼ä¼ä¸ôÓĞ¶àÉÙ
+  //µÚÁù¸ö²ÎÊı±íÊ¾ÎÒÃÇµÄÎ»ÖÃÊı¾İÔÚ»º³åÖĞÆğÊ¼Î»ÖÃµÄÆ«ÒÆÁ¿
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 7 * sizeof (GL_FLOAT), (GLvoid*)0);
+  //¿ªÆô¶¥µãÊôĞÔ£¬°Ñ¶¥µãÊôĞÔÎ»ÖÃÖµ×÷ÎªËüµÄ²ÎÊı
   glEnableVertexAttribArray(0);
   glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 7 * sizeof (GL_FLOAT), (GLvoid*)(3 * sizeof(GL_FLOAT)));
   glEnableVertexAttribArray(1);
+  //½â°óVAO
   glBindVertexArray(0);
-  //ç»‘å®šç¬¬äºŒä¸ªvao
+  //°ó¶¨µÚ¶ş¸övao
   GLuint vao2 = 0;
   glGenVertexArrays(1, &vao2);
   glBindVertexArray(vao2);
@@ -232,62 +224,110 @@ void onDisplay()
   glEnableVertexAttribArray(1);
   glBindVertexArray(0);
 
- 
-
-   //åˆ›å»ºå¹³ç§»
-   glm::mat4 view;
-   
+   //´´½¨ÊÓÍ¼¾ØÕó£¨ÓëÉãÏñ»úÓĞ¹Ø£©£¬Í¶Ó°¾ØÕóÒÔ¼°Ä£ĞÍ¾ØÕó
+   glm::mat4 view;  
    glm::mat4 projection;
-   view = glm::translate(view, glm::vec3(0.0f, 0.0f, -15.0f));
-   projection = glm::perspective(glm::radians(20.0f), (GLfloat)640 / (GLfloat)480, 0.1f, 100.0f);
-   // Get their uniform location
+   //ÉãÏñ»úµÄÏà¹Ø²ÎÊı
+   glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
+   glm::vec3 cameraTarget = glm::vec3(0.0f, 0.0f, 0.0f);
+   glm::vec3 cameraDirection = glm::normalize(cameraPos - cameraTarget);
+   glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f); 
+   glm::vec3 cameraRight = glm::normalize(glm::cross(up, cameraDirection));
+   glm::vec3 cameraUp = glm::cross(cameraDirection, cameraRight);
+   view = glm::lookAt(glm::vec3(0.0f, 0.0f, 3.0f), 
+           glm::vec3(0.0f, 0.0f, 0.0f), 
+           glm::vec3(0.0f, 1.0f, 0.0f));
+
+   projection = glm::perspective(glm::radians(45.0f), (GLfloat)640 / (GLfloat)480, 0.1f, 100.0f);
+   //ÕÒµ½×ÅÉ«Æ÷ÖĞuniformµÄË÷Òı/µØÖ·¡£µ±ÎÒÃÇµÃµ½uniformµÄË÷Òı/µØÖ·ºó£¬ÎÒÃÇ¾Í¿ÉÒÔ¸üĞÂËüµÄÖµÁË
    GLint modelLoc = glGetUniformLocation(program, "model");
    GLint viewLoc = glGetUniformLocation(program, "view");
    GLint projLoc = glGetUniformLocation(program, "projection");
-   // å°†çŸ©é˜µä¼ ç»™shader
+   //¼¤»îÕâ¸ö³ÌĞò¶ÔÏó£¬¼¤»îÁËµÄ×ÅÉ«Æ÷³ÌĞòµÄ×ÅÉ«Æ÷£¬ÔÚµ÷ÓÃäÖÈ¾º¯ÊıÊ±²Å¿ÉÓÃ
+   //¸üĞÂÒ»¸öuniformÖ®Ç°±ØĞëÊ¹ÓÃ×ÅÉ«Æ÷³ÌĞò£¬ÒòÎªËüÊÇÔÚµ±Ç°¼¤»îµÄ×ÅÉ«Æ÷³ÌĞòÖĞÉèÖÃuniformµÄ
+   glUseProgram(program);
+   //¸Ä±äÏàÓ¦¾ØÕóµÄÖµ£¬½«¾ØÕó´«¸øshader
    glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
-   // Note: currently we set the projection matrix each frame, but since the projection matrix 
-   //rarely changes it's often best practice to set it outside the main loop only once.
-   glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
-   glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
-   
-   
-   //å¹³ç§»
-   glm::vec3 cubePositions[] = {
-		
-	glm::vec3(-0.2f, -0.2f, -2.5f),     //é å‰çš„
-	glm::vec3( 0.4f,  0.0f,  4.0f)      //é åçš„,æ”¹äº†zçš„å€¼ä¸ºæ­£åˆ™è¯¥ç‰©ä½“ä¼šåœ¨ç¬¬ä¸€ä¸ªå‰æ–¹,ç”¨äºæµ‹è¯•æ·±åº¦æµ‹è¯•çš„å‚æ•°
-
-   };
-   
-   //ç»‘å®šç¬¬ä¸€ä¸ªvao
-   //æ³¨ï¼šå¹³ç§»çŸ©é˜µæ˜¯å åŠ çš„ï¼Œè§’åº¦ä¹Ÿæ˜¯å åŠ çš„
+   glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection)); 
+  
+   //°ó¶¨µÚÒ»¸övao
    glm::mat4 model;
    model = glm::translate(model, cubePositions[0]);
-   GLfloat angle;
-   angle = 0.2f;
-   model = glm::rotate(model, angle, glm::vec3(1.0f, 0.3f, 0.5f));
+   model = glm::rotate(model,glm::radians((GLfloat)glfwGetTime() * 10.0f), glm::vec3(0.0f, 1.0f, 0.0f));
    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-   glBindVertexArray(vao1);
-   // glDrawArrays(GL_TRIANGLES, 0, 36);
-   //ç¬¬ä¸€ä¸ªå‚æ•°æ˜¯å›¾å…ƒçš„ç±»å‹ï¼Œç¬¬äºŒä¸ªå‚æ•°æ˜¯ç´¢å¼•æ•°ç»„ä¸­ç´¢å¼•çš„æ•°é‡ï¼Œ
-   //ç¬¬ä¸‰ä¸ªå‚æ•°æ˜¯ç´¢å¼•æ•°ç»„çš„ç±»å‹ï¼Œæœ€åä¸€ä¸ªå‚æ•°æ˜¯ç´¢å¼•æ•°ç»„çš„åœ°å€
-   glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT,index);
    glUseProgram(program);
-   //glBindVertexArray(0);
 
-   model = glm::translate(model, cubePositions[1]);
-   //angle = 0.0f;
-   //model = glm::rotate(model, angle, glm::vec3(1.0f, 0.3f, 0.5f));
-   glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-   glBindVertexArray(vao2);
+   glBindVertexArray(vao1);
+   //ÓÃÏß¿òÄ£Ê½»æÖÆÈı½ÇĞÎ
+   //µÚÒ»¸ö²ÎÊıÖ¸Ó¦ÓÃµ½ËùÓĞµÄÈı½ÇĞÎµÄÇ°ÃæºÍ±³Ãæ£¬µÚ¶ş¸ö²ÎÊıÖ¸ÓÃÏßÀ´»æÖÆ
+   //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+   //glDrawArrays(GL_TRIANGLES, 0, 36);
+   //µÚÒ»¸ö²ÎÊıÊÇÍ¼ÔªµÄÀàĞÍ£¬µÚ¶ş¸ö²ÎÊıÊÇË÷ÒıÊı×éÖĞË÷ÒıµÄÊıÁ¿£¬
+   //µÚÈı¸ö²ÎÊıÊÇË÷ÒıÊı×éµÄÀàĞÍ£¬×îºóÒ»¸ö²ÎÊıÊÇË÷ÒıÊı×éµÄµØÖ·(µ±Ê¹ÓÃEBO¶ÔÏóÊ±Ö¸¶¨EBOÖĞµÄÆ«ÒÆÁ¿)
    glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT,index);
-   
    glBindVertexArray(0);
 
-  //glDrawArrays(GL_TRIANGLES, 0, 3*12);  //ç¬¬ä¸‰ä¸ªå‚æ•°è¡¨ç¤ºé¡¶ç‚¹çš„æ•°ç›®
-  
+   glm::mat4 model2;
+   model2 = glm::translate(model2, cubePositions[1]);
+   model2 = glm::rotate(model2, - (glm::radians((GLfloat)glfwGetTime()* 5.0f)), glm::vec3(0.0f, 1.0f, 0.0f));
+   glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model2));
+   glBindVertexArray(vao2);
+   glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT,index);
+   glBindVertexArray(0);
+   //glDrawArrays(GL_TRIANGLES, 0, 3*12);  //µÚÈı¸ö²ÎÊı±íÊ¾¶¥µãµÄÊıÄ¿
+
+   projection1 = get_projection(projection);
+   view1 = get_view(view);
+
+
 }
+
+
+//---------------------------------------------------------------------------
+//	 ¸Ãº¯ÊıÓÃÓÚ»ñÈ¡rayÏòÁ¿£¬¼´Á½¸ö¶ËµãµÄ×ø±êv1, v2
+//   v1±íÊ¾½üÆ½ÃæµÄ×ø±ê£¬v2±íÊ¾Ô¶Æ½ÃæµÄ×ø±ê
+//   viewport±íÊ¾ÊÓ¿ÚÇøÓò
+//   ÀûÓÃglm::unProjectº¯ÊıÀ´½«´°¿ÚµÄ¶şÎ¬×ø±ê×ª»»ÎªÊÀ½ç×ø±êÏµÖĞµÄÈıÎ¬×ø±ê
+//---------------------------------------------------------------------------
+
+void Get3DRayUnderMouse(glm::vec3* v1, glm::vec3* v2, double xpos, double ypos)
+{	
+	glm::vec4 viewport = glm::vec4(0.0f, 0.0f,width, height);
+	*v1 = glm::unProject(glm::vec3(float(xpos), height-float(ypos), 0.0f), view1, projection1, viewport);
+	*v2 = glm::unProject(glm::vec3(float(xpos), height-float(ypos), 1.0f), view1, projection1, viewport);
+}
+
+//----------------------------------------------------------------------------
+//	¸Ãº¯ÊıÓÃÓÚ¼ì²ârayÊÇ·ñ´©¹ı°üÎ§cubeµÄÇòÌå
+//  vA±íÊ¾rayµÄÆğµã×ø±ê£¬vB±íÊ¾rayµÄÖÕµã×ø±ê
+//  ÏÈÕÒµ½ÔÚrayÏòÁ¿ÉÏÀëÇòÌå×î½üµÄµã£¬È»ºó±È½Ï¸Ãµãµ½ÇòÌåµÄÖĞĞÄ¾àÀëÓë°ë¾¶µÄ´óĞ¡
+//  À´È·¶¨rayÊÇ·ñ´©¹ıÁË¸ÃÇòÌå
+//----------------------------------------------------------------------------
+bool RaySphereCollision(glm::vec3 vSphereCenter, float fSphereRadius, glm::vec3 vA, glm::vec3 vB)
+{
+	// ´´½¨Ò»¸öÏòÁ¿´ÓµãvAµ½ÇòµÄÖĞĞÄ
+	glm::vec3 vDirToSphere = vSphereCenter - vA;
+	// Çó´ÓµãvAµ½vBµÄµ¥Î»ÏòÁ¿
+	glm::vec3 vLineDir = glm::normalize(vB-vA);
+	// ÇórayÏòÁ¿µÄ³¤¶È
+	float fLineLength = glm::distance(vA, vB);
+	// ÀûÓÃµã³Ë½«vDirToSphereÏòÁ¿Í¶Ó°µ½rayµÄµ¥Î»ÏòÁ¿ÉÏ
+	float t = glm::dot(vDirToSphere, vLineDir);
+	glm::vec3 vClosestPoint;
+	// Èç¹ûÍ¶Ó°µÄ¾àÀëµÄĞ¡ÓÚ»òµÈÓÚ0£¬¼´rayÏòÁ¿ÓëvDirToSphereÏòÁ¿µÄ¼Ğ½Ç´óÓÚ90¶È£¬´ËÊ±×î½üµÄµãÊÇvA
+	if (t <= 0.0f)
+		vClosestPoint = vA;
+	// Èç¹ûÍ¶Ó°µÄ¾àÀë´óÓÚrayÏòÁ¿µÄ³¤¶È£¬Ôò×î½üµÄµãÊÇvB
+	else if (t >= fLineLength)
+		vClosestPoint = vB;
+	// ·ñÔò×î½üµÄµãÔÚrayÏòÁ¿ÉÏ£¬Çó³ö¸ÃµãµÄ×ø±ê
+	else
+		vClosestPoint = vA+vLineDir*t;
+	// ·µ»ØrayÏòÁ¿ÉÏ×î½üµÄµãÓëÇòÖĞĞÄµÄ¾àÀëÊÇ·ñĞ¡ÓÚ»òµÈÓÚ°ë¾¶
+	return glm::distance(vSphereCenter, vClosestPoint) <= fSphereRadius;
+}
+
+
 
 void free_resources()
 {
@@ -298,40 +338,118 @@ static void error_callback(int error, const char* description)
 {
   fputs(description, stderr);
 }
+
+//¼üÅÌµÄ»Øµ÷º¯Êı
 static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
-{
+{ 
+  //µ±°´ÏÂescape¼üÊ±¹Ø±Õglfw´°¿Ú
   if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
     glfwSetWindowShouldClose(window, GL_TRUE);
+ 
 }
+
+//ÉÏÒ»Ö¡Êó±ê×ó¼üÊÇ·ñ°´ÏÂ
+//¸Ã±äÁ¿Ö÷ÒªÊÇÊ¹Ã¿µã»÷Ò»´ÎÊó±êÖ»Êä³öÒ»´Î£¬±ÜÃâµã»÷Ò»´ÎÊó±êÊä³öºÜ¶à´Î
+GLboolean wasleftbuttonpresslastframe = false;
+
+//Êó±êµÄ»Øµ÷º¯Êı
+void mouse_callback(GLFWwindow* window, double xpos, double ypos){
+
+//----------------------------------------------------------------------------------
+//   ÓÃraycastingµÄ·½·¨À´picking cube
+//   ¸Ã·½·¨ÊÇrayÊÇ·ñ´©¹ıÒ»¸ö°üÎ§cubeµÄÇòÌåÀ´¼ì²âÊó±êÊÇ·ñµã»÷ÁË¸Ãcube
+//   °üÎ§ÇòÌåµÄÖ±¾¶µÄ³¤¶ÈÊÇcubeµÄĞ±¶Ô½ÇÏß
+//----------------------------------------------------------------------------------
+if ( GLFW_PRESS == glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT)){
+	if (wasleftbuttonpresslastframe == false)
+	{   
+		bool isIntersection[2];
+		GLfloat radius = 1.414;
+		glm::vec3 v1;
+		glm::vec3 v2;
+		Get3DRayUnderMouse(&v1, &v2, xpos, ypos);
+		for (int i = 0; i < 2; i++)
+			isIntersection[i] = RaySphereCollision(cubePositions[i], radius, v1, v2);
+		
+		if (isIntersection[0] == true && isIntersection[1] == false)
+			printf("cube1\n");
+		else if (isIntersection[1] == true && isIntersection[0] == false)
+			printf("cube2\n");
+		else if (isIntersection[0] == true && isIntersection[1] == true){
+			 // ÔÚeye spaceÖĞzÔ½´óÔòÎïÌåÔ½¿¿Ç°
+			 if (cubePositions[0].z > cubePositions[1].z)
+				 printf ("cube1\n");
+			 else printf ("cube2\n");
+		}
+		else printf("no cube \n");
+	
+	wasleftbuttonpresslastframe = true;
+  }
+ }
+
+   else if (GLFW_RELEASE == glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT))
+			wasleftbuttonpresslastframe = false;
+
+
+ //-----------------------------------------------------------------------------------
+ //   ÓÃcolor bufferµÄ·½·¨À´picking cube
+ //-----------------------------------------------------------------------------------
+/*
+  if ( GLFW_PRESS == glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT))
+   {   
+	    
+	if (wasleftbuttonpresslastframe == false)
+	{
+		glFlush();
+		glFinish ();
+		//´°¿ÚµÄ×ø±êÔ­µãÔÚ×óÉÏ½Ç£¬ÓÉ×óÏòÓÒxÔö¼Ó£¬ÓÉÉÏÖÁÏÂyÔö¼Ó
+        //glfwGetCursorPos(window, &xpos, &ypos);
+		glReadPixels((GLint)xpos,480-(GLint) ypos,1, 1, GL_RGB, GL_FLOAT, pixel);
+		//printf("alpha: %f  %f  %f\n",pixel[0], pixel[1], pixel[2]);
+		if (pixel[0] == 1.0f && pixel[1] == 0.0f && pixel[2] == 1.0f)
+			printf ("the selection is : cube1\n");
+		else if (pixel[0] == 1.0f && pixel[1] == 1.0f && pixel[2] == 0.0f)
+			printf ("the selection is : cube2\n");
+		else if (pixel[0] == 0.0f && pixel[1] == 0.0f && pixel[2] == 0.0f)
+			printf ("the selection is : no cube\n");
+		wasleftbuttonpresslastframe = true;
+		}		
+	}
+  else if (GLFW_RELEASE == glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT))
+			wasleftbuttonpresslastframe = false;
+*/
+}
+
 int main(void)
 {
-
-  
-  
+ 
   GLFWwindow* window;
   glfwSetErrorCallback(error_callback);
+  //³õÊ¼»¯glfw
   if (!glfwInit())
     exit(EXIT_FAILURE);
-
+  //ÅäÖÃGLFW
+  //Ç°Á½¸öº¯ÊıµÄµÚÒ»¸ö²ÎÊıÊÇÉèÖÃOpenGLµÄ°æ±¾ºÅ
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
   glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-  
+  //´´½¨Ò»¸ö´°¿Ú£¬Ç°Á½¸ö²ÎÊı±íÊ¾´°¿ÚµÄ¿íºÍ¸ß£¬µÚÈı¸öÊÇ´°¿ÚµÄÃû×Ö£¬ºóÃæÁ½¸ö²ÎÊı¿ÉÒÔºöÂÔ
   window = glfwCreateWindow(640, 480, "Simple example", NULL, NULL);
   if (!window)
     {
     glfwTerminate();
     exit(EXIT_FAILURE);
     }
+  //make the context of our window the main context on the current thread
   glfwMakeContextCurrent(window);
   glfwSwapInterval(0);
-
+  //ÔÚÊ¹ÓÃÈÎºÎµÄOpenGLº¯ÊıÖ®Ç°ÏÈ³õÊ¼»¯glew
   glewExperimental = GL_TRUE;
   GLenum glewError = glewInit();
   if( glewError != GLEW_OK )
     {
-      //      throw std::runtime_error("glew fails to start.");
+      //throw std::runtime_error("glew fails to start.");
       fprintf(stderr, "glew error\n");
     }
 
@@ -341,11 +459,11 @@ int main(void)
   printf ("Renderer: %s\n", renderer);
   printf ("OpenGL version supported %s\n", version);
 
-  //æ·±åº¦æµ‹è¯•
+  //Éî¶È²âÊÔ
   // tell GL to only draw onto a pixel if the shape is closer to the viewer
   glEnable (GL_DEPTH_TEST); // enable depth-testing
   glDepthFunc (GL_LESS);  // depth-testing interprets a smaller value as "closer"
-  //glDepthFunc (GL_ALWAYS);  //The depth test always passesï¼Œå³åç”»çš„ä¼šè¦†ç›–å‰é¢çš„
+  //glDepthFunc (GL_ALWAYS);  //The depth test always passes£¬¼´ºó»­µÄ»á¸²¸ÇÇ°ÃæµÄ
 
 
   //face culling
@@ -354,30 +472,39 @@ int main(void)
   //glCullFace(GL_BACK);
   //glFrontFace(GL_CW);
 
-  //blendingå¿…é¡»å…ˆç”»ä¸é€æ˜çš„å†ç”»é€æ˜çš„
-  glEnable(GL_BLEND); 
-  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  //blending±ØĞëÏÈ»­²»Í¸Ã÷µÄÔÙ»­Í¸Ã÷µÄ
+  //glEnable(GL_BLEND); 
+  //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 
   glfwSetKeyCallback(window, key_callback);
-  
+  glfwSetCursorPosCallback(window, mouse_callback);
+  //glfwSetMouseButtonCallback(window, mouse_callback1);
+
   GLint maxV;
   glGetIntegerv(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &maxV);
   fprintf(stderr, "maxv: %d\n", maxV);
   
   init_resources();
-  
+
+  //game loopÈÃ¸Ã´°¿Ú²»ÄÇÃ´¿ì¹Ø±Õ£¬¶øÊÇÈÃÓÃ»§¾ö¶¨ÊÇ·ñ¹Ø±Õ´°¿Ú
+  //äÖÈ¾µÄÃüÁîÓ¦¸Ã·ÅÔÚÕâ¸öÑ­»·ÀïÃæ
   while (!glfwWindowShouldClose(window))
-    {
-    
-    onDisplay();
+  {
+	
+	//Çå¿ÕÆÁÄ»
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+    onDisplay();	
+	//½»»»Á½¸öcolor buffer£¬ÀïÃæ´æ·ÅÁËglfw´°¿ÚµÄÃ¿¸öÏñËØµÄÑÕÉ«Öµ
     glfwSwapBuffers(window);
     glfwPollEvents();
-    
-    }
+
+  }
   free_resources();
   
   glfwDestroyWindow(window);
+  //ÊÍ·Å±»·ÖÅäÄÚ´æµÄËùÓĞ×ÊÔ´
   glfwTerminate();
   exit(EXIT_SUCCESS);
 }
